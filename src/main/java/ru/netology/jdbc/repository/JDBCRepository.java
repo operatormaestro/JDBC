@@ -1,38 +1,29 @@
 package ru.netology.jdbc.repository;
 
-import org.springframework.core.io.ClassPathResource;
-import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
-import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.PersistenceContext;
+import lombok.AllArgsConstructor;
 import org.springframework.stereotype.Repository;
+import ru.netology.jdbc.model.Order;
 
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
+import java.util.ArrayList;
 import java.util.List;
-import java.util.stream.Collectors;
 
 @Repository
+@AllArgsConstructor
 public class JDBCRepository {
-    private final NamedParameterJdbcTemplate namedParameterJdbcTemplate;
-    private final String sqlFile = "script.sql";
-    private final String requestLine = read(sqlFile);
+    @PersistenceContext
+    private EntityManager entityManager;
 
-    public JDBCRepository(NamedParameterJdbcTemplate namedParameterJdbcTemplate) {
-        this.namedParameterJdbcTemplate = namedParameterJdbcTemplate;
-    }
-
-    private static String read(String scriptFileName) {
-        try (InputStream is = new ClassPathResource(scriptFileName).getInputStream();
-             BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(is))) {
-            return bufferedReader.lines().collect(Collectors.joining("\n"));
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
-    }
 
     public List<String> getProductName(String name) {
-        MapSqlParameterSource parameters = new MapSqlParameterSource("name", name);
-        return namedParameterJdbcTemplate.queryForList(requestLine, parameters, String.class);
+        List<Order> orderList = entityManager.createNativeQuery("select * from netology.orders;", Order.class).getResultList();
+        List<String> products = new ArrayList<>();
+        for (Order order : orderList) {
+            if (order.getCustomer().getName().equalsIgnoreCase(name)) {
+                products.add(order.getProductName());
+            }
+        }
+        return products;
     }
 }
